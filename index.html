@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RobotX.cl - En Construcción</title>
+    <style>
+        /* 1. CONFIGURACIÓN BÁSICA Y FONDO */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden; /* Evita barras de scroll */
+            font-family: 'Courier New', Courier, monospace; /* Fuente tipo código */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Fondo de estrellas sutil */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+            opacity: 0.6;
+            z-index: -1;
+        }
+
+        /* 2. CONTENEDOR PRINCIPAL */
+        .scene {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 3. EL PLANETA (CANVAS) */
+        canvas {
+            position: absolute;
+            z-index: 10;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 65, 0.6)); /* Brillo Neon */
+        }
+
+        /* 4. TÍTULO CENTRAL */
+        .title-box {
+            position: absolute;
+            z-index: 20;
+            text-align: center;
+            pointer-events: none; /* Deja pasar clicks */
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 3rem;
+            margin: 0;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            letter-spacing: 5px;
+        }
+
+        p {
+            color: #0f0;
+            font-size: 1.2rem;
+            margin-top: 10px;
+            text-shadow: 0 0 10px #0f0;
+            animation: blink 2s infinite;
+        }
+
+        /* 5. SATÉLITES (LUCES) */
+        .satellite {
+            position: absolute;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 15px #0ff, 0 0 30px #0ff; /* Azul cian para contraste */
+            z-index: 5;
+        }
+
+        /* Órbita 1 */
+        .sat-1 {
+            width: 8px;
+            height: 8px;
+            top: 50%;
+            left: 50%;
+            animation: orbit1 4s linear infinite;
+        }
+
+        /* Órbita 2 (Inclinada) */
+        .sat-2 {
+            width: 6px;
+            height: 6px;
+            top: 50%;
+            left: 50%;
+            background: #f0f; /* Magenta */
+            box-shadow: 0 0 15px #f0f;
+            animation: orbit2 7s linear infinite;
+        }
+
+        /* ANIMACIONES */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes orbit1 {
+            from { transform: rotate(0deg) translateX(220px) rotate(0deg); }
+            to   { transform: rotate(360deg) translateX(220px) rotate(-360deg); }
+        }
+
+        @keyframes orbit2 {
+            from { transform: rotate(45deg) rotate(0deg) translateX(280px) rotate(0deg); }
+            to   { transform: rotate(45deg) rotate(360deg) translateX(280px) rotate(-360deg); }
+        }
+
+        /* Responsivo básico */
+        @media (max-width: 600px) {
+            .scene { transform: scale(0.6); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scene">
+        <canvas id="codePlanet"></canvas>
+
+        <div class="title-box">
+            <h1>ROBOTX</h1>
+            <p>&lt; SITIO EN CONSTRUCCIÓN /&gt;</p>
+        </div>
+
+        <div class="satellite sat-1"></div>
+        <div class="satellite sat-2"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('codePlanet');
+        const ctx = canvas.getContext('2d');
+
+        // Configuración del Canvas
+        canvas.width = 500;
+        canvas.height = 500;
+        
+        const globeRadius = 180;
+        const globeCenterZ = -globeRadius; 
+        const perspective = 800;
+        
+        // Bloques de código que flotarán
+        const codeSnippets = [
+            "<div>", "{ }", "if()", "var", "0101", "return", 
+            "else", "true", "false", "#0f0", "RobotX", "ERROR",
+            "print", "scan", "loop", ";", "//", "&&", "||", 
+            "src", "href", "id", "class", "=>", "const", "let"
+        ];
+
+        // Generar partículas
+        const particleCount = 120;
+        const particles = [];
+
+        for (let i = 0; i < particleCount; i++) {
+            // Algoritmo para distribuir puntos uniformemente en una esfera (Fibonacci Sphere)
+            const theta = Math.acos(-1 + (2 * i) / particleCount);
+            const phi = Math.sqrt(particleCount * Math.PI) * theta;
+
+            particles.push({
+                x: globeRadius * Math.sin(theta) * Math.cos(phi),
+                y: globeRadius * Math.sin(theta) * Math.sin(phi),
+                z: globeRadius * Math.cos(theta),
+                text: codeSnippets[Math.floor(Math.random() * codeSnippets.length)]
+            });
+        }
+
+        // Variables de rotación
+        let angleY = 0;
+        let angleX = 0;
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Rotación automática
+            angleY += 0.005; // Velocidad horizontal
+            angleX += 0.002; // Velocidad vertical suave
+
+            particles.forEach(p => {
+                // 1. Rotar en eje Y
+                let x1 = p.x * Math.cos(angleY) - p.z * Math.sin(angleY);
+                let z1 = p.z * Math.cos(angleY) + p.x * Math.sin(angleY);
+
+                // 2. Rotar en eje X (para darle inclinación 3D)
+                let y1 = p.y * Math.cos(angleX) - z1 * Math.sin(angleX);
+                let z2 = z1 * Math.cos(angleX) + p.y * Math.sin(angleX);
+
+                // 3. Proyección 3D a 2D
+                let scale = perspective / (perspective + z2 + globeRadius);
+                let x2D = (canvas.width / 2) + x1 * scale;
+                let y2D = (canvas.height / 2) + y1 * scale;
+
+                // 4. Dibujar
+                // Calculamos alpha (transparencia) basado en la profundidad (z)
+                // Si está atrás, se ve más oscuro y pequeño
+                let alpha = 1;
+                if(z2 < 0) alpha = 0.3; // Parte trasera del planeta
+                
+                // Color Verde Neon
+                ctx.fillStyle = `rgba(0, 255, 65, ${alpha})`;
+                ctx.font = `${14 * scale}px 'Courier New'`;
+                
+                // Efecto de "cara oculta": solo dibujar si no está muy atrás para limpiar visualmente
+                // O dibujarlo todo para efecto "wireframe". Aquí dibujamos todo.
+                ctx.fillText(p.text, x2D, y2D);
+            });
+
+            requestAnimationFrame(render);
+        }
+
+        // Iniciar animación
+        render();
+    </script>
+</body>
+</html>
